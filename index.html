@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>HNM – Cotizador</title>
+  <style>
+    :root {
+      --primary: #1a5276;
+      --primary-light: #2e86c1;
+      --accent: #1e8449;
+      --danger: #c0392b;
+      --warn: #d68910;
+      --bg: #eef2f7;
+      --card: #ffffff;
+      --border: #d5dce8;
+      --text: #1c2833;
+      --muted: #6d7a8a;
+      --internal: #fef9e7;
+      --internal-border: #f0c040;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── HEADER ── */
+    .app-header { background: var(--primary); color: #fff; padding: 14px 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    .app-header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: .4px; }
+    .app-header .sub { font-size: .72rem; opacity: .75; margin-top: 1px; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; background: #fff; border-bottom: 2px solid var(--border); position: sticky; top: 56px; z-index: 90; }
+    .tab { flex: 1; padding: 11px 6px; text-align: center; font-size: .88rem; font-weight: 600; cursor: pointer; color: var(--muted); border-bottom: 3px solid transparent; transition: all .2s; user-select: none; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* ── LAYOUT ── */
+    .content { padding: 14px 14px 40px; max-width: 820px; margin: 0 auto; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── CARDS ── */
+    .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 14px; box-shadow: 0 1px 5px rgba(0,0,0,.07); }
+    .card-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .9px; color: var(--primary); margin-bottom: 13px; padding-bottom: 8px; border-bottom: 1.5px solid var(--border); }
+
+    /* ── FORM ── */
+    .row { display: grid; gap: 10px; margin-bottom: 10px; }
+    .row.c2 { grid-template-columns: 1fr 1fr; }
+    .row.c3 { grid-template-columns: 1fr 1fr 1fr; }
+    @media(max-width:540px){ .row.c2,.row.c3 { grid-template-columns: 1fr; } }
+    .fg { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: .73rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    input, select, textarea {
+      padding: 9px 11px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .93rem; color: var(--text); background: #fafbfd; transition: border-color .18s;
+      -webkit-appearance: none; appearance: none; width: 100%;
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath fill='%236d7a8a' d='M5 7 0 0h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 11px center; padding-right: 28px;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-light); background: #fff; }
+    textarea { resize: vertical; min-height: 64px; }
+    input[type=number] { text-align: right; }
+    input[type=date] { text-align: left; }
+    input[type=text], input[type=email], input[type=tel] { text-align: left; }
+
+    /* ── TOGGLE ── */
+    .tog { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .tog input[type=checkbox] { width: 42px; height: 24px; appearance: none; background: #c8d0d9; border-radius: 12px; position: relative; cursor: pointer; border: none; padding: 0; flex-shrink: 0; transition: background .2s; }
+    .tog input[type=checkbox]:checked { background: var(--accent); }
+    .tog input[type=checkbox]::after { content: ''; position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+    .tog input[type=checkbox]:checked::after { left: 20px; }
+    .tog-text { font-size: .9rem; font-weight: 500; color: var(--text); text-transform: none; letter-spacing: 0; }
+
+    /* ── ITEM ROW ── */
+    .item-card { border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; position: relative; background: #f7f9fc; }
+    .item-card .item-num { font-size: .72rem; font-weight: 700; color: var(--primary); margin-bottom: 9px; text-transform: uppercase; letter-spacing: .5px; }
+    .item-del { position: absolute; top: 10px; right: 10px; background: var(--danger); color: #fff; border: none; border-radius: 6px; width: 27px; height: 27px; font-size: .9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .internal-section { background: var(--internal); border: 1px solid var(--internal-border); border-radius: 7px; padding: 9px 10px; margin: 8px 0 4px; }
+    .internal-label { font-size: .68rem; font-weight: 700; color: var(--warn); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 7px; }
+    .item-footer { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: .82rem; color: var(--muted); }
+    .item-footer .ttl { font-weight: 700; color: var(--primary); font-size: 1rem; }
+    .ro { background: #edf3fb !important; color: var(--primary) !important; font-weight: 600; border-color: #c5d8f0 !important; }
+
+    /* ── TOTALS ── */
+    .tot-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+    .tot-row:last-child { border-bottom: none; }
+    .tot-row label { font-size: .88rem; color: var(--text); font-weight: 500; text-transform: none; letter-spacing: 0; }
+    .tot-row .amt { font-weight: 600; font-size: .9rem; min-width: 110px; text-align: right; }
+    .tot-row .iinput { width: 90px; padding: 6px 8px; font-size: .88rem; text-align: right; border: 1.5px solid var(--border); border-radius: 7px; background: #fafbfd; }
+    .tot-final { font-size: 1.05rem; font-weight: 700; color: var(--primary); padding: 10px 0 0 !important; border-top: 2px solid var(--primary); border-bottom: none !important; margin-top: 4px; }
+    .tot-final .amt { font-size: 1.15rem; }
+
+    /* ── BUTTONS ── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 18px; border-radius: 8px; font-size: .92rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s, transform .1s; white-space: nowrap; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-green { background: var(--accent); color: #fff; }
+    .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-warn { background: var(--warn); color: #fff; }
+    .btn-sm { padding: 7px 13px; font-size: .82rem; }
+    .btn-block { width: 100%; }
+    .actions { display: flex; gap: 9px; flex-wrap: wrap; }
+    .actions .btn { flex: 1; min-width: 120px; }
+
+    /* ── HISTORY ── */
+    .hist-item { background: #fff; border-radius: 10px; padding: 13px 14px; margin-bottom: 9px; box-shadow: 0 1px 4px rgba(0,0,0,.07); border-left: 4px solid var(--primary); }
+    .hist-item .folio { font-size: .75rem; font-weight: 700; color: var(--primary); }
+    .hist-item .empresa { font-size: .98rem; font-weight: 700; margin: 2px 0; }
+    .hist-item .meta { font-size: .78rem; color: var(--muted); }
+    .hist-item .total-h { font-size: 1.05rem; font-weight: 700; color: var(--accent); margin-top: 5px; }
+    .hist-actions { margin-top: 9px; display: flex; gap: 7px; flex-wrap: wrap; }
+
+    /* ── MISC ── */
+    .empty { text-align: center; padding: 38px 16px; color: var(--muted); }
+    .empty .icon { font-size: 2.8rem; margin-bottom: 8px; }
+    .note { font-size: .75rem; color: var(--muted); font-style: italic; margin-bottom: 11px; }
+    .badge { display: inline-block; background: var(--internal); border: 1px solid var(--internal-border); color: var(--warn); font-size: .7rem; font-weight: 700; border-radius: 4px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; text-transform: uppercase; }
+
+    /* ── EXPORT/IMPORT ── */
+    .export-row { display: flex; gap: 9px; margin-top: 12px; flex-wrap: wrap; }
+    .export-row .btn { flex: 1; min-width: 120px; }
+    #importInput { display: none; }
+
+    /* ── LOGO MODAL ── */
+    #logo-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; align-items:center; justify-content:center; }
+    #logo-modal.open { display:flex; }
+    .logo-box { background:#fff; border-radius:12px; padding:22px 20px 18px; max-width:360px; width:92%; box-shadow:0 8px 32px rgba(0,0,0,.28); }
+    .logo-box h2 { font-size:1rem; color:var(--primary); margin-bottom:14px; }
+    .logo-slot { border:2px dashed var(--border); border-radius:8px; padding:10px; margin-bottom:12px; cursor:pointer; text-align:center; }
+    .logo-slot:hover { border-color:var(--primary-light); background:#f4f8ff; }
+    .logo-slot label { font-size:.78rem; color:var(--muted); display:block; margin-bottom:6px; font-weight:600; }
+    .logo-slot img { max-height:54px; max-width:100%; display:block; margin:0 auto; }
+    .logo-slot .empty { font-size:.82rem; color:#bbb; padding:8px 0; }
+    .logo-slot input[type=file] { display:none; }
+    .logo-modal-btns { display:flex; gap:8px; margin-top:4px; }
+    .btn-logo-clear { background:#f0f0f0; color:#666; border:none; border-radius:7px; padding:8px 14px; font-size:.82rem; cursor:pointer; }
+    .btn-logo-clear:hover { background:#e0e0e0; }
+    #logo-setup-btn { background:transparent; border:1.5px solid rgba(255,255,255,.5); color:#fff; border-radius:7px; padding:5px 10px; font-size:.78rem; cursor:pointer; white-space:nowrap; }
+    #logo-setup-btn:hover { background:rgba(255,255,255,.15); }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <div>
+    <h1>⚙️ HNM Cotizador</h1>
+    <div class="sub">Heilnetz México SA de CV</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+    <div id="folioDisplay" style="text-align:right;font-size:.78rem;opacity:.85;line-height:1.5"></div>
+    <button id="logo-setup-btn" onclick="abrirLogoSetup()">🖼 Logos PDF</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('nueva')" id="tab-btn-nueva">📋 Nueva Cotización</div>
+  <div class="tab" onclick="showTab('historial')" id="tab-btn-historial">📁 Historial</div>
+</div>
+
+<div class="content">
+
+  <!-- ══════════════ NUEVA COTIZACIÓN ══════════════ -->
+  <div class="tab-pane active" id="tab-nueva">
+
+    <!-- CLIENTE -->
+    <div class="card">
+      <div class="card-title">👤 Datos del Cliente</div>
+      <div class="row">
+        <div class="fg"><label>Empresa *</label><input type="text" id="empresa" placeholder="Nombre de la empresa"></div>
+      </div>
+      <div class="row c2">
+        <div class="fg"><label>Contacto</label><input type="text" id="contacto" placeholder="Nombre del contacto"></div>
+        <div class="fg"><label>Correo</label><input type="email" id="correo" placeholder="correo@empresa.com" autocomplete="off"></div>
+      </div>
+      <div class="row c2">
+        <div class="fg"><label>Teléfono</label><input type="tel" id="telefono" placeholder="+52 55 0000 0000"></div>
+        <div class="fg"><label>RFC</label><input type="text" id="rfc" placeholder="RFC del cliente"></div>
+      </div>
+      <div class="row">
+        <div class="fg"><label>Dirección</label><textarea id="direccion" placeholder="Dirección fiscal del cliente"></textarea></div>
+      </div>
+    </div>
+
+    <!-- COTIZACIÓN -->
+    <div class="card">
+      <div class="card-title">📄 Datos de la Cotización</div>
+      <div class="row c2">
+        <div class="fg"><label>Folio #</label><input type="number" id="folio" value="1" min="1" style="text-align:left"></div>
+        <div class="fg"><label>Fecha</label><input type="date" id="fecha"></div>
+      </div>
+      <div class="row c2">
+        <div class="fg">
+          <label>Moneda</label>
+          <select id="moneda" onchange="updateAll()">
+            <option value="MXN">MXN – Peso mexicano</option>
+            <option value="USD">USD – Dólar</option>
+          </select>
+        </div>
+        <div class="fg"><label>Vigencia (días)</label><input type="number" id="vigencia" value="15" min="1" style="text-align:left"></div>
+      </div>
+      <div class="row c2">
+        <div class="fg">
+          <label>Términos de pago</label>
+          <select id="terminos">
+            <option>Contado</option>
+            <option>15 días</option>
+            <option>30 días</option>
+            <option>45 días</option>
+            <option>60 días</option>
+          </select>
+        </div>
+        <div class="fg"><label>Ejecutivo</label><input type="text" id="ejecutivo" placeholder="Tu nombre"></div>
+      </div>
+      <div class="row">
+        <div class="fg"><label>OC del cliente (opcional)</label><input type="text" id="oc" placeholder="Número de orden de compra"></div>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <label class="tog">
+          <input type="checkbox" id="aplicarIva" onchange="calcTotals()">
+          <span class="tog-text">Aplicar IVA (16%)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- CONCEPTOS -->
+    <div class="card">
+      <div class="card-title">📦 Conceptos</div>
+      <div class="note">
+        Los campos de <strong>Costo</strong> y <strong>Markup</strong> <span class="badge">Interno</span> son solo para tu referencia — no aparecen en el PDF del cliente.
+      </div>
+      <div id="items-container"></div>
+      <button class="btn btn-outline btn-block" onclick="addItem()" style="margin-top:4px">＋ Agregar concepto</button>
+    </div>
+
+    <!-- TOTALES -->
+    <div class="card">
+      <div class="card-title">💰 Totales</div>
+      <div class="tot-row">
+        <label>Subtotal</label>
+        <div class="amt" id="dSubtotal">$0.00</div>
+      </div>
+      <div class="tot-row">
+        <label>Descuento global</label>
+        <div style="display:flex;align-items:center;gap:5px">
+          <input class="iinput" type="number" id="descGlobal" value="0" min="0" max="100" step="0.1" oninput="calcTotals()" style="width:76px"> %
+        </div>
+      </div>
+      <div class="tot-row">
+        <label>Envío</label>
+        <input class="iinput" type="number" id="envio" value="0" min="0" step="any" oninput="calcTotals()">
+      </div>
+      <div class="tot-row">
+        <label>Otros cargos</label>
+        <input class="iinput" type="number" id="otros" value="0" min="0" step="any" oninput="calcTotals()">
+      </div>
+      <div class="tot-row" id="ivaRow" style="display:none">
+        <label>IVA (16%)</label>
+        <div class="amt" id="dIva">$0.00</div>
+      </div>
+      <div class="tot-row tot-final">
+        <label>TOTAL</label>
+        <div class="amt" id="dTotal">$0.00</div>
+      </div>
+
+      <!-- Margen interno -->
+      <div style="margin-top:12px; background:var(--internal); border:1px solid var(--internal-border); border-radius:8px; padding:10px 12px;">
+        <div class="internal-label">📊 Margen Interno (no aparece en PDF)</div>
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;">
+          <span style="color:var(--muted)">Costo total:</span><strong id="dCostoTotal" style="color:var(--warn)">$0.00</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-top:4px;">
+          <span style="color:var(--muted)">Margen bruto:</span><strong id="dMargen" style="color:var(--accent)">$0.00 (—%)</strong>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div class="fg"><label>Notas / Condiciones</label><textarea id="notas" placeholder="Condiciones de entrega, garantía, observaciones…"></textarea></div>
+      </div>
+    </div>
+
+    <!-- ACCIONES -->
+    <div class="card">
+      <div class="card-title">⚡ Acciones</div>
+      <div class="actions">
+        <button class="btn btn-green" onclick="generarPDF()">📄 Generar PDF</button>
+        <button class="btn btn-primary" onclick="guardar()">💾 Guardar</button>
+        <button class="btn btn-outline" onclick="nuevaCotizacion()">🗑 Limpiar</button>
+      </div>
+    </div>
+
+  </div><!-- /tab-nueva -->
+
+  <!-- ══════════════ HISTORIAL ══════════════ -->
+  <div class="tab-pane" id="tab-historial">
+    <div class="card">
+      <div class="card-title">📁 Cotizaciones guardadas</div>
+      <div id="histContainer"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔄 Respaldo de datos</div>
+      <div class="note">Exporta tus cotizaciones a un archivo JSON como respaldo, o impórtalas desde otro dispositivo.</div>
+      <div class="export-row">
+        <button class="btn btn-outline" onclick="exportarJSON()">⬇ Exportar JSON</button>
+        <button class="btn btn-outline" onclick="document.getElementById('importInput').click()">⬆ Importar JSON</button>
+      </div>
+      <input type="file" id="importInput" accept=".json" onchange="importarJSON(event)">
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ════════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// ─── CONSTANTS ───────────────────────────────────
+const IVA = 0.16;
+const STORAGE_KEY = 'hnm_cotizaciones_v2';
+
+// ─── STATE ───────────────────────────────────────
+let iid = 0; // item id counter
+
+// ─── INIT ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setToday();
+  nextFolio();
+  addItem();
+  updateFolioDisplay();
+});
+
+function setToday() {
+  const d = new Date();
+  document.getElementById('fecha').value = d.toISOString().split('T')[0];
+}
+
+function nextFolio() {
+  const list = getCotizaciones();
+  if (!list.length) return;
+  const max = Math.max(...list.map(c => parseInt(c.folio) || 0));
+  document.getElementById('folio').value = max + 1;
+}
+
+function updateFolioDisplay() {
+  const f = document.getElementById('folio')?.value || '—';
+  const d = document.getElementById('fecha')?.value || '';
+  document.getElementById('folioDisplay').innerHTML = `Folio #${f}<br>${d ? fmtDate(d) : ''}`;
+}
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'folio' || e.target.id === 'fecha') updateFolioDisplay();
+});
+
+// ─── TABS ─────────────────────────────────────────
+function showTab(name) {
+  ['nueva','historial'].forEach(n => {
+    document.getElementById('tab-btn-' + n).classList.toggle('active', n === name);
+    document.getElementById('tab-' + n).classList.toggle('active', n === name);
+  });
+  if (name === 'historial') renderHistorial();
+}
+
+// ─── ADD/REMOVE ITEMS ─────────────────────────────
+function addItem() {
+  iid++;
+  const id = iid;
+  const div = document.createElement('div');
+  div.className = 'item-card';
+  div.id = 'ic-' + id;
+  div.innerHTML = `
+    <div class="item-num">Concepto #${id}</div>
+    <button class="item-del" onclick="delItem(${id})" title="Eliminar">✕</button>
+    <div class="row">
+      <div class="fg"><label>Descripción *</label>
+        <input type="text" id="d_${id}" placeholder="Producto o servicio" oninput="recalc(${id})">
+      </div>
+    </div>
+    <div class="row c2">
+      <div class="fg"><label>Cantidad</label>
+        <input type="number" id="q_${id}" value="1" min="0" step="any" oninput="recalc(${id})">
+      </div>
+      <div class="fg"><label>Unidad</label>
+        <select id="u_${id}">
+          <option>pieza</option><option>paquete</option><option>servicio</option>
+          <option>hora</option><option>día</option><option>mes</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="fg"><label>SKU / Código</label>
+        <input type="text" id="sku_${id}" placeholder="Opcional">
+      </div>
+    </div>
+    <div class="internal-section">
+      <div class="internal-label">🔒 Interno – no aparece en PDF</div>
+      <div class="row c2">
+        <div class="fg"><label>Costo unitario</label>
+          <input type="number" id="c_${id}" placeholder="0.00" min="0" step="any" oninput="recalc(${id})">
+        </div>
+        <div class="fg"><label>Markup %</label>
+          <input type="number" id="mk_${id}" placeholder="0" min="0" step="any" oninput="recalc(${id})">
+        </div>
+      </div>
+    </div>
+    <div class="row c2" style="margin-top:8px">
+      <div class="fg"><label>Precio unitario</label>
+        <input type="number" id="p_${id}" placeholder="0.00" min="0" step="any" oninput="recalc(${id},'manual')">
+      </div>
+      <div class="fg"><label>Descuento %</label>
+        <input type="number" id="dp_${id}" value="0" min="0" max="100" step="any" oninput="recalc(${id})">
+      </div>
+    </div>
+    <div class="item-footer">
+      <span>Precio neto: <strong id="neto_${id}">$0.00</strong></span>
+      <span class="ttl">Total: <strong id="tl_${id}">$0.00</strong></span>
+    </div>
+  `;
+  document.getElementById('items-container').appendChild(div);
+}
+
+function delItem(id) {
+  const el = document.getElementById('ic-' + id);
+  if (el) el.remove();
+  calcTotals();
+}
+
+// ─── CALCULATIONS ─────────────────────────────────
+function g(id) { return document.getElementById(id); }
+function gv(id) { const el = g(id); return el ? parseFloat(el.value) || 0 : 0; }
+
+function recalc(id, src) {
+  const q   = gv('q_'  + id);
+  const c   = gv('c_'  + id);
+  const mk  = gv('mk_' + id);
+  const dp  = gv('dp_' + id);
+  const pEl = g('p_' + id);
+
+  // If costo+markup are filled and user didn't manually edit precio, auto-fill
+  if (src !== 'manual' && c > 0) {
+    const autoPrecio = c * (1 + mk / 100);
+    if (pEl) pEl.value = autoPrecio.toFixed(2);
+  }
+
+  const precio = gv('p_' + id);
+  const neto   = precio * (1 - dp / 100);
+  const total  = round2(q * neto);
+
+  const cur = g('moneda')?.value || 'MXN';
+  g('neto_' + id).textContent = fmt(neto, cur);
+  g('tl_'  + id).textContent  = fmt(total, cur);
+
+  calcTotals();
+}
+
+function calcTotals() {
+  const cur = g('moneda')?.value || 'MXN';
+  let subtotal = 0, costoTotal = 0;
+
+  // Walk all item cards
+  document.querySelectorAll('.item-card').forEach(card => {
+    const id = card.id.replace('ic-', '');
+    const q   = gv('q_'  + id);
+    const c   = gv('c_'  + id);
+    const mk  = gv('mk_' + id);
+    const dp  = gv('dp_' + id);
+    let precio = gv('p_' + id);
+    if (c > 0) {
+      const autop = c * (1 + mk / 100);
+      const pel = g('p_' + id);
+      if (pel && (parseFloat(pel.value) || 0) !== round2(autop)) {
+        // use whatever is in the field
+      }
+    }
+    const neto = precio * (1 - dp / 100);
+    subtotal  += round2(q * neto);
+    costoTotal += round2(q * c);
+  });
+
+  const descG    = gv('descGlobal');
+  const envio    = gv('envio');
+  const otros    = gv('otros');
+  const iva_on   = g('aplicarIva')?.checked || false;
+
+  const subAdj   = round2(subtotal * (1 - descG / 100));
+  const base     = subAdj + envio + otros;
+  const iva      = iva_on ? round2(base * IVA) : 0;
+  const total    = base + iva;
+  const margen   = base - costoTotal;
+  const margenPct = base > 0 ? margen / base * 100 : 0;
+
+  g('dSubtotal').textContent  = fmt(subtotal, cur);
+  g('dIva').textContent       = fmt(iva, cur);
+  g('dTotal').textContent     = fmt(total, cur);
+  g('dCostoTotal').textContent = fmt(costoTotal, cur);
+  g('dMargen').textContent    = `${fmt(margen, cur)} (${margenPct.toFixed(1)}%)`;
+  g('ivaRow').style.display   = iva_on ? 'flex' : 'none';
+}
+
+function updateAll() {
+  // Recalc all items when currency changes
+  document.querySelectorAll('.item-card').forEach(card => {
+    recalc(card.id.replace('ic-',''));
+  });
+  calcTotals();
+}
+
+function round2(n) { return Math.round(n * 100) / 100; }
+
+function fmt(n, cur) {
+  cur = cur || g('moneda')?.value || 'MXN';
+  return new Intl.NumberFormat('es-MX', { style:'currency', currency: cur }).format(n || 0);
+}
+
+function fmtDate(s) {
+  if (!s) return '';
+  const [y,m,d] = s.split('-');
+  const ms = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return `${parseInt(d)} ${ms[parseInt(m)-1]} ${y}`;
+}
+
+// ─── COLLECT DATA ─────────────────────────────────
+function collectData() {
+  const cur = g('moneda').value;
+  const iva_on = g('aplicarIva').checked;
+  const items = [];
+
+  document.querySelectorAll('.item-card').forEach(card => {
+    const id = card.id.replace('ic-','');
+    const desc = g('d_' + id)?.value?.trim() || '';
+    if (!desc) return;
+    const q    = gv('q_'   + id);
+    const c    = gv('c_'   + id);
+    const mk   = gv('mk_'  + id);
+    const dp   = gv('dp_'  + id);
+    let precio = gv('p_'   + id);
+    if (c > 0) precio = c * (1 + mk / 100);
+    const neto  = precio * (1 - dp / 100);
+    const total = round2(q * neto);
+    const cline = round2(q * c);
+    items.push({
+      desc, sku: g('sku_'+id)?.value||'', q,
+      unidad: g('u_'+id)?.value||'pieza',
+      c, mk, precio, dp, neto, total, cline
+    });
+  });
+
+  const descG  = gv('descGlobal');
+  const envio  = gv('envio');
+  const otros  = gv('otros');
+  const sub    = items.reduce((s, i) => s + i.total, 0);
+  const subAdj = round2(sub * (1 - descG / 100));
+  const base   = subAdj + envio + otros;
+  const iva    = iva_on ? round2(base * IVA) : 0;
+  const total  = base + iva;
+  const costo  = items.reduce((s,i) => s + i.cline, 0);
+
+  return {
+    empresa:   g('empresa').value.trim(),
+    contacto:  g('contacto').value.trim(),
+    correo:    g('correo').value.trim(),
+    telefono:  g('telefono').value.trim(),
+    rfc:       g('rfc').value.trim(),
+    direccion: g('direccion').value.trim(),
+    folio:     g('folio').value.trim(),
+    fecha:     g('fecha').value,
+    moneda:    cur,
+    vigencia:  g('vigencia').value,
+    terminos:  g('terminos').value,
+    ejecutivo: g('ejecutivo').value.trim(),
+    oc:        g('oc').value.trim(),
+    iva_on, items, descG, envio, otros,
+    sub, subAdj, base, iva, total, costo,
+    notas: g('notas').value.trim(),
+    savedAt: new Date().toISOString()
+  };
+}
+
+// ─── PDF ─────────────────────────────────────────
+function generarPDF() {
+  const data = collectData();
+  if (!data.empresa) { alert('Ingresa el nombre de la empresa del cliente.'); return; }
+  if (!data.items.length) { alert('Agrega al menos un concepto.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  // ── Landscape letter
+  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'letter' });
+  const W = 279.4, PH = 215.9, M = 14;
+  const CW = W - M*2;  // 251.4 mm
+
+  const cur = data.moneda;
+  const fm  = n => new Intl.NumberFormat('es-MX',{style:'currency',currency:cur}).format(n||0);
+
+  // Palette (marca HeilNetz)
+  const LB = [41,171,226];   // light blue  #29ABE2
+  const DB = [27, 79,139];   // dark blue   #1B4F8B
+  const GR = [59,189, 68];   // green       #3BBD44
+  const GY = [242,242,242];  // gris label
+
+  // ── Utility: celda con borde, fondo opcional y texto
+  const cell = (x, y, w, h, txt, opt) => {
+    opt = opt || {};
+    const lb   = opt.lb   || false;
+    const fill = opt.fill || (lb ? GY : null);
+    const align= opt.align || 'left';
+    const fs   = opt.fs   || 7.5;
+    const bold = opt.bold || lb;
+    const pad  = opt.pad  !== undefined ? opt.pad : 2;
+    if (fill) { doc.setFillColor(...fill); doc.rect(x,y,w,h,'F'); }
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.2); doc.rect(x,y,w,h);
+    const s = String(txt === null || txt === undefined ? '' : txt).trim();
+    if (s) {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(fs);
+      doc.setTextColor(0,0,0);
+      const ty = y + h/2 + fs*0.185;
+      if (align === 'right')   doc.text(s, x+w-pad, ty, {align:'right'});
+      else if (align==='center') doc.text(s, x+w/2,  ty, {align:'center'});
+      else                      doc.text(s, x+pad,   ty);
+    }
+  };
+
+  // ── Wordmark vectorial centrado
+  const drawWordmark = (cx, yy, sz) => {
+    sz = sz || 22;
+    doc.setFont('helvetica','bold'); doc.setFontSize(sz);
+    doc.setTextColor(...LB); const hw = doc.getTextWidth('Heil');
+    doc.setTextColor(...DB); const nw = doc.getTextWidth(' Netz');
+    const lx = cx - (hw+nw)/2;
+    doc.setTextColor(...LB); doc.text('Heil',  lx,    yy);
+    doc.setTextColor(...DB); doc.text(' Netz', lx+hw, yy);
+    const bY=yy+4, bH=2.8, b1=22, b2=14, b3=22, gap=2;
+    const bx = cx - (b1+b2+b3+gap*2)/2;
+    doc.setFillColor(...LB); doc.roundedRect(bx,              bY, b1, bH, 1.4,1.4,'F');
+    doc.setFillColor(...GR); doc.roundedRect(bx+b1+gap,       bY, b2, bH, 1.4,1.4,'F');
+    doc.setFillColor(...DB); doc.roundedRect(bx+b1+gap+b2+gap, bY, b3, bH, 1.4,1.4,'F');
+  };
+
+  // ── Logo icono footer (vectorial — reemplazar con doc.addImage() al tener PNG)
+  const drawIconLogo = (x, y) => {
+    const s = 0.42;
+    doc.setDrawColor(...LB); doc.setLineWidth(0.55);
+    doc.lines([[4*s,0],[2*s,-7*s],[3*s,13*s],[2*s,-8*s],[3*s,0]], x, y+5*s);
+    const tx2 = x+15*s;
+    doc.setFillColor(...LB); doc.rect(tx2,        y, 11*s, 9*s,'F');
+    doc.setFillColor(...GR); doc.rect(tx2+11*s,   y,  9*s, 9*s,'F');
+    doc.setFillColor(255,255,255); doc.rect(tx2+1.5*s, y+1.5*s, 5*s, 4*s,'F');
+    doc.setFillColor(...DB);
+    doc.circle(tx2+2*s,    y+9.5*s, 1.8*s,'F');
+    doc.circle(tx2+17.5*s, y+9.5*s, 1.8*s,'F');
+    doc.setDrawColor(...GR); doc.setLineWidth(0.55);
+    const sx = tx2+22*s;
+    doc.lines([[0,-7*s],[5*s,-4*s],[4*s,3*s]], sx, y+8*s);
+    doc.setFillColor(...GR); doc.circle(sx+9*s, y+5*s, 2*s,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(5.8);
+    doc.setTextColor(...LB); doc.text('Heil', x+46*s, y+4*s);
+    doc.setTextColor(...DB); doc.text('Netz', x+46*s+doc.getTextWidth('Heil'), y+4*s);
+    doc.setFont('helvetica','normal'); doc.setFontSize(5.2);
+    doc.setTextColor(...DB); doc.text('México', x+46*s, y+9.5*s);
+  };
+
+  // ════ INICIO PÁGINA ════
+  let y = M;
+
+  // ── Logo wordmark centrado (imagen real si está disponible, si no vectorial)
+  if (_LOGOS.wm) {
+    const ratio  = _LOGO_RATIOS.wm || 2.8;  // fallback si la ratio no está guardada
+    const imgW   = 80;                        // ancho fijo en mm
+    const imgH   = imgW / ratio;              // altura proporcional automática
+    doc.addImage(_LOGOS.wm, 'PNG', W/2 - imgW/2, y, imgW, imgH);
+    y += imgH + 4;
+  } else {
+    drawWordmark(W/2, y+13, 22);
+    y += 22;
+  }
+
+  // ── Grid de 3 columnas (paisaje: más ancho)
+  // C1 Cliente  C2 Datos Cot.  C3 Empresa/Fechas
+  const C1x=M,      C1w=90;
+  const C2x=M+90,   C2w=56;
+  const C3x=M+146,  C3w=CW-146;  // 105.4 mm
+  const L1=34, V1=C1w-L1;        // 56
+  const L2=36, V2=C2w-L2;        // 20
+  const L3=40, V3=C3w-L3;        // 65.4
+  const RH=7;
+
+  // Fila 0 – cabeceras
+  cell(C1x, y, C1w, RH, 'Cliente',             {lb:true});
+  cell(C2x, y, C2w, RH, 'Datos de Cotización', {lb:true});
+  doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(0,0,0);
+  doc.text('Heilnetz México SA de CV', C3x+C3w, y+RH/2+1.5, {align:'right'});
+  y += RH;
+
+  const CF = [
+    ['Empresa',   data.empresa],
+    ['Contacto',  data.contacto],
+    ['Correo',    data.correo],
+    ['Teléfono',  data.telefono],
+    ['RFC (MX)',  data.rfc],
+    ['Dirección', data.direccion],
+  ];
+  const QF = [
+    ['Folio',            data.folio],
+    ['Moneda',           data.moneda],
+    ['Vigencia (días)',  data.vigencia],
+  ];
+  const DF = [
+    ['Fecha',          fmtDate(data.fecha)],
+    ['Térm. de pago',  data.terminos],
+    ['Ejecutivo',      data.ejecutivo || ''],
+  ];
+  const compAddr = ['Atizapan de Zaragoza', 'C.P. 52987, Edo de Méx.'];
+  const dfOffset = CF.length - DF.length;  // 3
+
+  for (let i=0; i < CF.length; i++) {
+    const ry = y + i*RH;
+    cell(C1x,    ry, L1, RH, CF[i][0], {lb:true});
+    cell(C1x+L1, ry, V1, RH, CF[i][1]);
+    if (i < QF.length) {
+      cell(C2x,    ry, L2, RH, QF[i][0], {lb:true});
+      cell(C2x+L2, ry, V2, RH, QF[i][1], {align:'center'});
+    } else {
+      doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(C2x, ry, C2w, RH);
+    }
+    if (i < compAddr.length) {
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
+      doc.text(compAddr[i], C3x+C3w, ry+RH/2+1.5, {align:'right'});
+    } else if (i >= dfOffset) {
+      const di = i - dfOffset;
+      cell(C3x,    ry, L3, RH, DF[di][0], {lb:true});
+      cell(C3x+L3, ry, V3, RH, DF[di][1]);
+    }
+  }
+  y += CF.length*RH + 5;
+
+  // ── Etiqueta Conceptos
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,0,0);
+  doc.text('Conceptos', M, y+4);
+  y += 7;
+
+  // ── Tabla de conceptos  (CW = 251.4 mm en landscape)
+  // Cant(15) Unidad(24) Descripción(108) P.Unit(34) Desc%(19) P.Neto(27) Total(resto~24.4)
+  const TC = [
+    {l:'Cant.',          w:15,  a:'center'},
+    {l:'Unidad',         w:24,  a:'center'},
+    {l:'Descripción',    w:108, a:'left'},
+    {l:'Precio unitario',w:34,  a:'center'},
+    {l:'Descuento %',    w:19,  a:'center'},
+    {l:'Precio neto',    w:27,  a:'center'},
+  ];
+  TC.push({l:'Total línea', w: CW - TC.reduce((s,c)=>s+c.w,0), a:'center'});
+  let tcx = M; TC.forEach(c => { c.x = tcx; tcx += c.w; });
+
+  const TH_H = 8;  // header row un poco más alto para que quepan títulos
+  const drawTH = (yy) => {
+    TC.forEach(c => cell(c.x, yy, c.w, TH_H, c.l, {lb:true, fs:7, align:'center'}));
+    return yy + TH_H;
+  };
+  y = drawTH(y);
+
+  data.items.forEach((item) => {
+    doc.setFontSize(7.5);
+    const dTxt = item.desc + (item.sku ? ' ['+item.sku+']' : '');
+    const dLns = doc.splitTextToSize(dTxt, TC[2].w - 3);
+    const rh = dLns.length > 1 ? RH+4 : RH;
+
+    if (y + rh > PH - 24) { doc.addPage(); y = M; y = drawTH(y); }
+
+    cell(TC[0].x, y, TC[0].w, rh, item.q,      {align:'center', fs:7.5});
+    cell(TC[1].x, y, TC[1].w, rh, item.unidad,  {align:'center', fs:7.5});
+    // Descripción con wrap
+    doc.setDrawColor(0); doc.setLineWidth(0.2); doc.rect(TC[2].x, y, TC[2].w, rh);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
+    if (dLns.length > 1) {
+      doc.text(dLns[0], TC[2].x+2, y+4);
+      doc.text(dLns[1], TC[2].x+2, y+8.5);
+    } else {
+      doc.text(dLns[0]||'', TC[2].x+2, y+rh/2+1.5);
+    }
+    cell(TC[3].x, y, TC[3].w, rh, fm(item.precio),  {align:'right', fs:7.5});
+    cell(TC[4].x, y, TC[4].w, rh, (item.dp||0)+'%', {align:'center',fs:7.5});
+    cell(TC[5].x, y, TC[5].w, rh, fm(item.neto),    {align:'right', fs:7.5});
+    cell(TC[6].x, y, TC[6].w, rh, fm(item.total),   {align:'right', fs:7.5, bold:true});
+    y += rh;
+  });
+
+  y += 6;
+
+  // ── Totales (derecha ~45%) + Notas (izquierda ~52%)
+  if (y + 55 > PH - 24) { doc.addPage(); y = M; }
+
+  const nW = CW * 0.52;
+  const tX = M + nW + 4, tW = CW - nW - 4;
+  const LTw = 52, VTw = tW - LTw;
+  const TRH = 6.5;
+
+  const totRows = [
+    ['Subtotal',           fm(data.sub)],
+    ['Descuento global '+(data.descG||0)+'%', fm(data.sub*(data.descG||0)/100)],
+    ['Subtotal ajustado',  fm(data.base - (data.envio||0) - (data.otros||0))],
+    ['Envío',              fm(data.envio)],
+    ['Otros',              fm(data.otros)],
+  ];
+  if (data.iva_on) totRows.push(['IVA (16%)', fm(data.iva)]);
+
+  totRows.forEach((row, i) => {
+    const ry = y + i*TRH;
+    cell(tX,      ry, LTw, TRH, row[0], {fs:7, align:'right', pad:3});
+    cell(tX+LTw,  ry, VTw, TRH, row[1], {fs:7, align:'right', pad:3});
+  });
+  const tyF = y + totRows.length*TRH;
+  cell(tX,     tyF, LTw, TRH+1, 'Total '+cur, {bold:true, fs:8, align:'right', pad:3});
+  cell(tX+LTw, tyF, VTw, TRH+1, fm(data.total), {bold:true, fs:8.5, fill:[187,222,251], align:'right', pad:3});
+
+  // Notas (izquierda)
+  if (data.notas) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
+    doc.text('Notas', M, y+5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    const nls = doc.splitTextToSize(data.notas, nW-2);
+    doc.text(nls, M, y+11);
+  }
+
+  // ── Footer en cada página
+  const pages = doc.internal.getNumberOfPages();
+  for (let p=1; p<=pages; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
+    doc.line(M, PH-15, W-M, PH-15);
+    if (_LOGOS.icon) {
+      const iRatio = _LOGO_RATIOS.icon || 1;
+      const iH = 11, iW = iH * iRatio;
+      doc.addImage(_LOGOS.icon, 'PNG', M, PH-13, iW, iH);
+    } else {
+      drawIconLogo(M, PH-13);
+    }
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(140,140,140);
+    doc.text('Pag. '+p+' de '+pages, W-M, PH-8, {align:'right'});
+  }
+
+  const nombre = 'HNM_Cotizacion_'+data.folio+'_'+(data.empresa||'cliente').replace(/[^\w]/g,'_')+'.pdf';
+  doc.save(nombre);
+  _save(data, true);
+}
+
+// ─── SAVE/LOAD ────────────────────────────────────
+function getCotizaciones() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+}
+
+function guardar() {
+  const data = collectData();
+  if (!data.empresa) { alert('Por favor ingresa el nombre de la empresa.'); return; }
+  _save(data, false);
+  alert(`✅ Cotización #${data.folio} guardada.`);
+}
+
+function _save(data, silent) {
+  const list = getCotizaciones();
+  const idx = list.findIndex(c => c.folio === data.folio);
+  if (idx >= 0) list[idx] = data; else list.unshift(data);
+  if (list.length > 200) list.splice(200);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  if (!silent) nextFolio();
+}
+
+function nuevaCotizacion() {
+  if (!confirm('¿Limpiar para una nueva cotización?')) return;
+  document.getElementById('empresa').value = '';
+  document.getElementById('contacto').value = '';
+  document.getElementById('correo').value = '';
+  document.getElementById('telefono').value = '';
+  document.getElementById('rfc').value = '';
+  document.getElementById('direccion').value = '';
+  document.getElementById('vigencia').value = 15;
+  document.getElementById('terminos').value = 'Contado';
+  document.getElementById('ejecutivo').value = '';
+  document.getElementById('oc').value = '';
+  document.getElementById('aplicarIva').checked = false;
+  document.getElementById('descGlobal').value = 0;
+  document.getElementById('envio').value = 0;
+  document.getElementById('otros').value = 0;
+  document.getElementById('notas').value = '';
+  document.getElementById('items-container').innerHTML = '';
+  iid = 0;
+  setToday();
+  nextFolio();
+  addItem();
+  calcTotals();
+  updateFolioDisplay();
+}
+
+// ─── LOAD INTO FORM ───────────────────────────────
+function cargar(folio) {
+  const data = getCotizaciones().find(c => c.folio === folio);
+  if (!data) return;
+  ['empresa','contacto','correo','telefono','rfc','folio','vigencia','ejecutivo','oc','notas'].forEach(k => {
+    if (g(k)) g(k).value = data[k] || '';
+  });
+  g('direccion').value = data.direccion || '';
+  g('fecha').value = data.fecha || '';
+  g('moneda').value = data.moneda || 'MXN';
+  g('terminos').value = data.terminos || 'Contado';
+  g('aplicarIva').checked = !!data.iva_on;
+  g('descGlobal').value = data.descG || 0;
+  g('envio').value = data.envio || 0;
+  g('otros').value = data.otros || 0;
+
+  document.getElementById('items-container').innerHTML = '';
+  iid = 0;
+
+  (data.items || []).forEach(item => {
+    addItem();
+    const id = iid;
+    g('d_'+id).value   = item.desc || '';
+    g('sku_'+id).value = item.sku  || '';
+    g('q_'+id).value   = item.q    || 1;
+    g('u_'+id).value   = item.unidad || 'pieza';
+    g('c_'+id).value   = item.c  > 0 ? item.c  : '';
+    g('mk_'+id).value  = item.mk > 0 ? item.mk : '';
+    g('p_'+id).value   = item.precio ? item.precio.toFixed(2) : '';
+    g('dp_'+id).value  = item.dp || 0;
+    recalc(id);
+  });
+
+  calcTotals();
+  updateFolioDisplay();
+  showTab('nueva');
+}
+
+function eliminar(folio) {
+  if (!confirm(`¿Eliminar cotización #${folio}?`)) return;
+  const list = getCotizaciones().filter(c => c.folio !== folio);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  renderHistorial();
+}
+
+function cargarYPDF(folio) {
+  cargar(folio);
+  setTimeout(generarPDF, 350);
+}
+
+// ─── RENDER HISTORIAL ─────────────────────────────
+function renderHistorial() {
+  const cot = getCotizaciones();
+  const cont = g('histContainer');
+  if (!cot.length) {
+    cont.innerHTML = '<div class="empty"><div class="icon">📭</div><div>No hay cotizaciones guardadas.</div></div>';
+    return;
+  }
+  cont.innerHTML = cot.map(c => {
+    const cur  = c.moneda || 'MXN';
+    const tot  = new Intl.NumberFormat('es-MX',{style:'currency',currency:cur}).format(c.total||0);
+    const date = c.fecha ? fmtDate(c.fecha) : '—';
+    const items_count = (c.items||[]).length;
+    return `<div class="hist-item">
+      <div class="folio">Folio #${c.folio} &nbsp;·&nbsp; ${date}</div>
+      <div class="empresa">${c.empresa||'—'}</div>
+      <div class="meta">${c.contacto ? c.contacto + ' · ' : ''}${c.ejecutivo ? 'Ejecutivo: '+c.ejecutivo+' · ' : ''}${items_count} concepto${items_count!==1?'s':''}</div>
+      <div class="total-h">${tot}</div>
+      <div class="hist-actions">
+        <button class="btn btn-primary btn-sm" onclick="cargar('${c.folio}')">✏️ Editar</button>
+        <button class="btn btn-green btn-sm"   onclick="cargarYPDF('${c.folio}')">📄 PDF</button>
+        <button class="btn btn-danger btn-sm"  onclick="eliminar('${c.folio}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── EXPORT / IMPORT ──────────────────────────────
+function exportarJSON() {
+  const list = getCotizaciones();
+  if (!list.length) { alert('No hay cotizaciones para exportar.'); return; }
+  const blob = new Blob([JSON.stringify(list, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `HNM_Cotizaciones_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function importarJSON(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('Formato incorrecto');
+      const existing = getCotizaciones();
+      // Merge: new ones take priority if same folio
+      const merged = [...data];
+      existing.forEach(c => {
+        if (!merged.find(m => m.folio === c.folio)) merged.push(c);
+      });
+      merged.sort((a,b) => parseInt(b.folio||0) - parseInt(a.folio||0));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      alert(`✅ ${data.length} cotizaciones importadas correctamente.`);
+      renderHistorial();
+    } catch { alert('❌ Archivo inválido. Asegúrate de que sea un JSON exportado de esta app.'); }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+
+// ─── LOGOS ───────────────────────────────────────
+let _LOGOS       = { wm: null, icon: null };
+let _LOGO_RATIOS = { wm: null, icon: null }; // naturalWidth / naturalHeight
+
+(function loadSavedLogos() {
+  try {
+    _LOGOS.wm         = localStorage.getItem('hnm_logo_wm')         || null;
+    _LOGOS.icon       = localStorage.getItem('hnm_logo_icon')       || null;
+    _LOGO_RATIOS.wm   = parseFloat(localStorage.getItem('hnm_logo_ratio_wm'))   || null;
+    _LOGO_RATIOS.icon = parseFloat(localStorage.getItem('hnm_logo_ratio_icon')) || null;
+  } catch(e) {}
+})();
+
+function abrirLogoSetup() {
+  // refresh previews
+  ['wm','icon'].forEach(t => {
+    const prev = document.getElementById('logo-prev-'+t);
+    if (_LOGOS[t]) {
+      prev.innerHTML = '<img src="'+_LOGOS[t]+'">';
+    } else {
+      prev.innerHTML = '<span class="empty">Sin logo cargado</span>';
+    }
+  });
+  document.getElementById('logo-modal').classList.add('open');
+}
+
+function cerrarLogoSetup() {
+  document.getElementById('logo-modal').classList.remove('open');
+}
+
+function logoFileSelected(tipo, inp) {
+  const file = inp.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    // Detect natural aspect ratio via a temporary Image element
+    const img = new Image();
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      _LOGOS[tipo]       = dataUrl;
+      _LOGO_RATIOS[tipo] = ratio;
+      try {
+        localStorage.setItem('hnm_logo_'+tipo,       dataUrl);
+        localStorage.setItem('hnm_logo_ratio_'+tipo, ratio);
+      } catch(e2) {}
+      document.getElementById('logo-prev-'+tipo).innerHTML = '<img src="'+dataUrl+'">';
+      inp.value = '';
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function borrarLogo(tipo) {
+  _LOGOS[tipo]       = null;
+  _LOGO_RATIOS[tipo] = null;
+  try {
+    localStorage.removeItem('hnm_logo_'+tipo);
+    localStorage.removeItem('hnm_logo_ratio_'+tipo);
+  } catch(e) {}
+  document.getElementById('logo-prev-'+tipo).innerHTML = '<span class="empty">Sin logo cargado</span>';
+}
+</script>
+
+<!-- ── MODAL LOGOS ── -->
+<div id="logo-modal" onclick="if(event.target===this)cerrarLogoSetup()">
+  <div class="logo-box">
+    <h2>🖼 Configurar logos del PDF</h2>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">
+      Carga una sola vez — quedan guardados en este navegador y aparecen en todos los PDFs.
+    </p>
+
+    <div class="logo-slot" onclick="document.getElementById('inp-wm').click()">
+      <label>Logo wordmark (encabezado, horizontal)</label>
+      <input type="file" id="inp-wm" accept="image/png,image/jpeg,image/svg+xml"
+             onchange="logoFileSelected('wm',this)" onclick="event.stopPropagation()">
+      <div id="logo-prev-wm"><span class="empty">Toca para seleccionar PNG/JPG</span></div>
+    </div>
+    <div class="logo-modal-btns" style="margin-top:-6px;margin-bottom:12px">
+      <button class="btn-logo-clear" onclick="borrarLogo('wm')">🗑 Quitar</button>
+    </div>
+
+    <div class="logo-slot" onclick="document.getElementById('inp-icon').click()">
+      <label>Logo icono (pie de página, cuadrado)</label>
+      <input type="file" id="inp-icon" accept="image/png,image/jpeg,image/svg+xml"
+             onchange="logoFileSelected('icon',this)" onclick="event.stopPropagation()">
+      <div id="logo-prev-icon"><span class="empty">Toca para seleccionar PNG/JPG</span></div>
+    </div>
+    <div class="logo-modal-btns" style="margin-top:-6px;margin-bottom:16px">
+      <button class="btn-logo-clear" onclick="borrarLogo('icon')">🗑 Quitar</button>
+    </div>
+
+    <button class="btn" style="width:100%" onclick="cerrarLogoSetup()">✅ Listo</button>
+  </div>
+</div>
+
+</body>
+</html>
