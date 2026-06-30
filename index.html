@@ -392,12 +392,15 @@ function addItem() {
     </div>
     <div class="internal-section">
       <div class="internal-label">🔒 Interno – no aparece en PDF</div>
-      <div class="row c2">
+      <div class="row c3">
         <div class="fg"><label>Costo unitario</label>
-          <input type="number" id="c_${id}" placeholder="0.00" min="0" step="any" oninput="recalc(${id})">
+          <input type="number" id="c_${id}" placeholder="0.00" min="0" step="any" oninput="recalc(${id},'cost')">
         </div>
-        <div class="fg"><label>Markup %</label>
-          <input type="number" id="mk_${id}" placeholder="0" min="0" step="any" oninput="recalc(${id})">
+        <div class="fg"><label>Ganancia %</label>
+          <input type="number" id="mk_${id}" placeholder="0" min="0" step="any" oninput="recalc(${id},'mk%')">
+        </div>
+        <div class="fg"><label>Ganancia $</label>
+          <input type="number" id="mkp_${id}" placeholder="0.00" min="0" step="any" oninput="recalc(${id},'mk$')">
         </div>
       </div>
     </div>
@@ -428,16 +431,43 @@ function g(id) { return document.getElementById(id); }
 function gv(id) { const el = g(id); return el ? parseFloat(el.value) || 0 : 0; }
 
 function recalc(id, src) {
-  const q   = gv('q_'  + id);
-  const c   = gv('c_'  + id);
-  const mk  = gv('mk_' + id);
-  const dp  = gv('dp_' + id);
-  const pEl = g('p_' + id);
+  const q    = gv('q_'   + id);
+  const c    = gv('c_'   + id);
+  const dp   = gv('dp_'  + id);
+  const mkEl  = g('mk_'  + id);
+  const mkpEl = g('mkp_' + id);
+  const pEl   = g('p_'   + id);
 
-  // If costo+markup are filled and user didn't manually edit precio, auto-fill
-  if (src !== 'manual' && c > 0) {
-    const autoPrecio = c * (1 + mk / 100);
-    if (pEl) pEl.value = autoPrecio.toFixed(2);
+  if (c > 0) {
+    if (src === 'mk%') {
+      // Ganancia % → calcular Ganancia $ y Precio
+      const mk  = parseFloat(mkEl?.value) || 0;
+      const mkp = round2(c * mk / 100);
+      if (mkpEl) mkpEl.value = mkp > 0 ? mkp.toFixed(2) : '';
+      if (pEl)   pEl.value   = (c + mkp).toFixed(2);
+
+    } else if (src === 'mk$') {
+      // Ganancia $ → calcular Ganancia % y Precio
+      const mkp = parseFloat(mkpEl?.value) || 0;
+      const mk  = round2(mkp / c * 100);
+      if (mkEl) mkEl.value  = mk > 0 ? mk.toFixed(2) : '';
+      if (pEl)  pEl.value   = (c + mkp).toFixed(2);
+
+    } else if (src === 'manual') {
+      // Precio editado a mano → recalcular Ganancia $ y %
+      const precio = parseFloat(pEl?.value) || 0;
+      const mkp    = round2(precio - c);
+      const mk     = round2(mkp / c * 100);
+      if (mkpEl) mkpEl.value = mkp > 0 ? mkp.toFixed(2) : '';
+      if (mkEl)  mkEl.value  = mk  > 0 ? mk.toFixed(2)  : '';
+
+    } else {
+      // Costo cambió o recalc genérico → mantener % para recalcular $
+      const mk  = parseFloat(mkEl?.value) || 0;
+      const mkp = round2(c * mk / 100);
+      if (mkpEl) mkpEl.value = mkp > 0 ? mkp.toFixed(2) : '';
+      if (pEl)   pEl.value   = (c + mkp).toFixed(2);
+    }
   }
 
   const precio = gv('p_' + id);
@@ -455,23 +485,14 @@ function calcTotals() {
   const cur = g('moneda')?.value || 'MXN';
   let subtotal = 0, costoTotal = 0;
 
-  // Walk all item cards
   document.querySelectorAll('.item-card').forEach(card => {
-    const id = card.id.replace('ic-', '');
-    const q   = gv('q_'  + id);
-    const c   = gv('c_'  + id);
-    const mk  = gv('mk_' + id);
-    const dp  = gv('dp_' + id);
-    let precio = gv('p_' + id);
-    if (c > 0) {
-      const autop = c * (1 + mk / 100);
-      const pel = g('p_' + id);
-      if (pel && (parseFloat(pel.value) || 0) !== round2(autop)) {
-        // use whatever is in the field
-      }
-    }
-    const neto = precio * (1 - dp / 100);
-    subtotal  += round2(q * neto);
+    const id   = card.id.replace('ic-', '');
+    const q    = gv('q_'  + id);
+    const c    = gv('c_'  + id);
+    const dp   = gv('dp_' + id);
+    const precio = gv('p_' + id);
+    const neto   = precio * (1 - dp / 100);
+    subtotal   += round2(q * neto);
     costoTotal += round2(q * c);
   });
 
@@ -530,16 +551,16 @@ function collectData() {
     const q    = gv('q_'   + id);
     const c    = gv('c_'   + id);
     const mk   = gv('mk_'  + id);
+    const mkp  = gv('mkp_' + id);
     const dp   = gv('dp_'  + id);
-    let precio = gv('p_'   + id);
-    if (c > 0) precio = c * (1 + mk / 100);
+    const precio = gv('p_' + id);
     const neto  = precio * (1 - dp / 100);
     const total = round2(q * neto);
     const cline = round2(q * c);
     items.push({
       desc, sku: g('sku_'+id)?.value||'', q,
       unidad: g('u_'+id)?.value||'pieza',
-      c, mk, precio, dp, neto, total, cline
+      c, mk, mkp, precio, dp, neto, total, cline
     });
   });
 
@@ -914,8 +935,9 @@ function cargar(folio) {
     g('sku_'+id).value = item.sku  || '';
     g('q_'+id).value   = item.q    || 1;
     g('u_'+id).value   = item.unidad || 'pieza';
-    g('c_'+id).value   = item.c  > 0 ? item.c  : '';
-    g('mk_'+id).value  = item.mk > 0 ? item.mk : '';
+    g('c_'+id).value   = item.c   > 0 ? item.c   : '';
+    g('mk_'+id).value  = item.mk  > 0 ? item.mk  : '';
+    g('mkp_'+id).value = item.mkp > 0 ? item.mkp : '';
     g('p_'+id).value   = item.precio ? item.precio.toFixed(2) : '';
     g('dp_'+id).value  = item.dp || 0;
     recalc(id);
